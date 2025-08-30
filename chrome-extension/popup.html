@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SocialCast</title>
+    <style>
+        body {
+            width: 350px;
+            min-height: 400px;
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .header p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .status-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff4757;
+        }
+        
+        .status-dot.active {
+            background: #2ed573;
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn-primary {
+            background: #2ed573;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #26d0ce;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .btn-danger {
+            background: #ff4757;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #ff3742;
+        }
+        
+        .stats {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .stat-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .stat-label {
+            opacity: 0.8;
+        }
+        
+        .stat-value {
+            font-weight: 600;
+        }
+        
+        .voice-controls {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .voice-controls h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+        }
+        
+        .form-group {
+            margin-bottom: 10px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 12px;
+        }
+        
+        .form-group select option {
+            background: #333;
+            color: white;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: rgba(255, 71, 87, 0.2);
+            border: 1px solid rgba(255, 71, 87, 0.5);
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎙️ SocialCast</h1>
+        <p>Turn your social feeds into a podcast</p>
+    </div>
+    
+    <div class="status-card">
+        <div class="status-indicator">
+            <div id="status-dot" class="status-dot"></div>
+            <span id="status-text">Not listening</span>
+        </div>
+        <div id="platform-info">Platform: <span id="current-platform">Unknown</span></div>
+    </div>
+    
+    <div class="controls">
+        <button id="start-btn" class="btn btn-primary">🎧 Start Listening</button>
+        <button id="stop-btn" class="btn btn-danger" style="display: none;">⏹️ Stop Listening</button>
+        <button id="digest-btn" class="btn btn-secondary">📊 Generate Daily Digest</button>
+    </div>
+    
+    <div class="voice-controls">
+        <h3>🎤 Voice Settings</h3>
+        <div class="form-group">
+            <label for="voice-select">Voice:</label>
+            <select id="voice-select">
+                <option value="en-US-amara">Amara (Conversational)</option>
+                <option value="en-US-jenny">Jenny (Professional)</option>
+                <option value="en-US-mike">Mike (Casual)</option>
+                <option value="en-IN-priya">Priya (Friendly)</option>
+                <option value="en-GB-charles">Charles (Formal)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="speed-slider">Speed: <span id="speed-value">1.0x</span></label>
+            <input type="range" id="speed-slider" min="0.5" max="2.0" step="0.1" value="1.0">
+        </div>
+        <button id="update-voice-btn" class="btn btn-secondary">Update Voice</button>
+    </div>
+    
+    <div class="stats">
+        <div class="stat-item">
+            <span class="stat-label">Posts Extracted:</span>
+            <span id="posts-count" class="stat-value">0</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Audio Generated:</span>
+            <span id="audio-count" class="stat-value">0</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Listening Time:</span>
+            <span id="listening-time" class="stat-value">0:00</span>
+        </div>
+    </div>
+    
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <div>Processing...</div>
+    </div>
+    
+    <div id="error" class="error" style="display: none;"></div>
+    
+    <script src="popup.js"></script>
+</body>
+</html>
+
