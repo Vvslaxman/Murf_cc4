@@ -10,6 +10,7 @@ import sys
 import json
 from datetime import datetime
 from dotenv import load_dotenv
+load_dotenv()
 
 # Add the current directory to Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))

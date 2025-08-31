@@ -246,15 +246,17 @@ async def generate_daily_digest(request: DigestRequest) -> Dict[str, Any]:
     try:
         audio_path = await feed_processor.generate_daily_digest(request.hours)
         
-        if not audio_path:
+        if not audio_path or audio_path == "no_posts":
             return {
                 "message": "No posts found for digest",
-                "audio_url": None
+                "audio_url": None,
+                "posts_count": 0
             }
         
         return {
             "message": f"Daily digest generated for last {request.hours} hours",
-            "audio_url": audio_path
+            "audio_url": audio_path,
+            "posts_count": len(feed_processor.get_daily_digest_posts(request.hours))
         }
     
     except Exception as e:

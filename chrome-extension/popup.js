@@ -67,9 +67,16 @@ class SocialCastPopup {
                 // Get status from content script
                 const response = await chrome.tabs.sendMessage(tab.id, { action: 'getStatus' });
                 
-                if (response) {
+                if (response && !response.error) {
                     this.updateStatus(response.isListening, response.platform);
-                    this.elements.postsCount.textContent = response.postsExtracted || 0;
+                    this.elements.postsCount.textContent = response.postsCount || 0;
+                } else {
+                    // Try to get status from background script
+                    const bgResponse = await chrome.runtime.sendMessage({ action: 'getStatus' });
+                    if (bgResponse && !bgResponse.error) {
+                        this.updateStatus(bgResponse.isListening, bgResponse.platform);
+                        this.elements.postsCount.textContent = bgResponse.postsCount || 0;
+                    }
                 }
             }
         } catch (error) {
@@ -82,15 +89,8 @@ class SocialCastPopup {
         try {
             this.showLoading(true);
             
-            // Get current tab
-            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-            
-            if (!tab) {
-                throw new Error('No active tab found');
-            }
-            
-            // Send message to content script
-            const response = await chrome.tabs.sendMessage(tab.id, { action: 'startListening' });
+            // Send message to background script
+            const response = await chrome.runtime.sendMessage({ action: 'startListening' });
             
             if (response && response.success) {
                 this.isListening = true;
@@ -102,10 +102,9 @@ class SocialCastPopup {
             } else {
                 throw new Error('Failed to start listening');
             }
-            
         } catch (error) {
             console.error('Error starting listening:', error);
-            this.showError('Failed to start listening. Please refresh the page.');
+            this.showError('Error starting listening: ' + error.message);
         } finally {
             this.showLoading(false);
         }
@@ -115,23 +114,21 @@ class SocialCastPopup {
         try {
             this.showLoading(true);
             
-            // Get current tab
-            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            // Send message to background script
+            const response = await chrome.runtime.sendMessage({ action: 'stopListening' });
             
-            if (tab) {
-                // Send message to content script
-                await chrome.tabs.sendMessage(tab.id, { action: 'stopListening' });
+            if (response && response.success) {
+                this.isListening = false;
+                this.updateStatus(false);
+                this.stopListeningTimer();
+                
+                console.log('SocialCast: Stopped listening');
+            } else {
+                throw new Error('Failed to stop listening');
             }
-            
-            this.isListening = false;
-            this.updateStatus(false);
-            this.stopListeningTimer();
-            
-            console.log('SocialCast: Stopped listening');
-            
         } catch (error) {
             console.error('Error stopping listening:', error);
-            this.showError('Failed to stop listening.');
+            this.showError('Error stopping listening: ' + error.message);
         } finally {
             this.showLoading(false);
         }
@@ -141,7 +138,6 @@ class SocialCastPopup {
         try {
             this.showLoading(true);
             
-            // Call backend API to generate digest
             const response = await fetch('http://localhost:8000/digest/generate', {
                 method: 'POST',
                 headers: {
@@ -155,20 +151,19 @@ class SocialCastPopup {
                 
                 if (result.audio_url) {
                     // Play the digest audio
-                    const audio = new Audio(`http://localhost:8000/audio/${result.audio_url.split('/').pop()}`);
+                    const audio = new Audio(`http://localhost:8000${result.audio_url}`);
                     audio.play();
                     
-                    this.showSuccess('Daily digest generated and playing!');
+                    this.showMessage('Daily digest generated and playing!');
                 } else {
-                    this.showError('No posts found for digest');
+                    this.showMessage('No posts found for digest');
                 }
             } else {
-                throw new Error('Failed to generate digest');
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            
         } catch (error) {
             console.error('Error generating digest:', error);
-            this.showError('Failed to generate digest. Make sure the backend is running.');
+            this.showError('Error generating digest: ' + error.message);
         } finally {
             this.showLoading(false);
         }
@@ -176,40 +171,51 @@ class SocialCastPopup {
     
     async updateVoiceConfig() {
         try {
-            this.showLoading(true);
+            const voiceConfig = {
+                voice_id: this.elements.voiceSelect.value,
+                rate: parseFloat(this.elements.speedSlider.value) - 1, // Convert to -1 to 1 range
+                style: 'Conversational'
+            };
             
-            const voiceId = this.elements.voiceSelect.value;
-            const speed = parseFloat(this.elements.speedSlider.value);
-            
-            // Calculate rate from speed (Murf uses -10 to 10 range)
-            const rate = Math.round((speed - 1) * 10);
-            
-            // Call backend API to update voice config
             const response = await fetch('http://localhost:8000/voice/config', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    voice_id: voiceId,
-                    style: 'Conversational',
-                    rate: rate,
-                    pitch: 0,
-                    variation: 1
-                })
+                body: JSON.stringify(voiceConfig)
             });
             
             if (response.ok) {
-                this.showSuccess('Voice configuration updated!');
+                this.showMessage('Voice configuration updated!');
             } else {
-                throw new Error('Failed to update voice config');
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            
         } catch (error) {
             console.error('Error updating voice config:', error);
-            this.showError('Failed to update voice config. Make sure the backend is running.');
-        } finally {
-            this.showLoading(false);
+            this.showError('Error updating voice config: ' + error.message);
+        }
+    }
+    
+    async updateStats() {
+        try {
+            const response = await fetch('http://localhost:8000/stats');
+            
+            if (response.ok) {
+                const stats = await response.json();
+                
+                this.elements.postsCount.textContent = stats.statistics.total_posts || 0;
+                this.elements.audioCount.textContent = stats.statistics.total_audio_generated || 0;
+                
+                // Update listening time
+                if (this.isListening && this.startTime) {
+                    const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+                    const minutes = Math.floor(elapsed / 60);
+                    const seconds = elapsed % 60;
+                    this.elements.listeningTime.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                }
+            }
+        } catch (error) {
+            console.error('Error updating stats:', error);
         }
     }
     
@@ -219,7 +225,7 @@ class SocialCastPopup {
         // Update UI
         if (isListening) {
             this.elements.statusDot.classList.add('active');
-            this.elements.statusText.textContent = 'Listening for posts...';
+            this.elements.statusText.textContent = 'Listening';
             this.elements.startBtn.style.display = 'none';
             this.elements.stopBtn.style.display = 'block';
         } else {
@@ -236,12 +242,11 @@ class SocialCastPopup {
     
     startListeningTimer() {
         this.stopListeningTimer();
-        
         this.listeningInterval = setInterval(() => {
             if (this.startTime) {
-                const elapsed = Date.now() - this.startTime;
-                const minutes = Math.floor(elapsed / 60000);
-                const seconds = Math.floor((elapsed % 60000) / 1000);
+                const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
                 this.elements.listeningTime.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
             }
         }, 1000);
@@ -254,24 +259,6 @@ class SocialCastPopup {
         }
     }
     
-    async updateStats() {
-        try {
-            // Get stats from backend
-            const response = await fetch('http://localhost:8000/stats');
-            
-            if (response.ok) {
-                const stats = await response.json();
-                const data = stats.statistics;
-                
-                this.elements.postsCount.textContent = data.total_posts_processed || 0;
-                this.elements.audioCount.textContent = data.posts_with_audio || 0;
-            }
-        } catch (error) {
-            // Silently fail - backend might not be running
-            console.debug('Could not fetch stats:', error);
-        }
-    }
-    
     showLoading(show) {
         this.elements.loading.style.display = show ? 'block' : 'none';
     }
@@ -280,34 +267,32 @@ class SocialCastPopup {
         this.elements.error.textContent = message;
         this.elements.error.style.display = 'block';
         
-        // Hide after 5 seconds
         setTimeout(() => {
             this.elements.error.style.display = 'none';
         }, 5000);
     }
     
-    showSuccess(message) {
-        // Create a temporary success message
-        const successDiv = document.createElement('div');
-        successDiv.style.cssText = `
+    showMessage(message) {
+        // Create a temporary message element
+        const messageEl = document.createElement('div');
+        messageEl.textContent = message;
+        messageEl.style.cssText = `
             position: fixed;
-            top: 20px;
+            top: 10px;
             left: 50%;
             transform: translateX(-50%);
             background: #2ed573;
             color: white;
             padding: 10px 20px;
             border-radius: 5px;
-            font-size: 12px;
             z-index: 10000;
+            font-size: 14px;
         `;
-        successDiv.textContent = message;
         
-        document.body.appendChild(successDiv);
+        document.body.appendChild(messageEl);
         
-        // Remove after 3 seconds
         setTimeout(() => {
-            document.body.removeChild(successDiv);
+            document.body.removeChild(messageEl);
         }, 3000);
     }
 }

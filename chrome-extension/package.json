@@ -1,0 +1,15 @@
+{
+  "name": "socialcast-extension",
+  "version": "1.0.0",
+  "description": "SocialCast Chrome Extension for social media podcast generation",
+  "main": "background.js",
+  "scripts": {
+    "build": "echo \"Chrome extension built successfully\" && echo \"Load the extension from chrome-extension/ directory in Chrome Extensions page\"",
+    "start": "echo \"Starting Chrome extension development mode\" && echo \"Load the extension from chrome-extension/ directory in Chrome Extensions page\"",
+    "dev": "echo \"Development mode - make changes and reload extension in Chrome\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["chrome-extension", "social-media", "podcast", "tts"],
+  "author": "SocialCast Team",
+  "license": "MIT"
+}

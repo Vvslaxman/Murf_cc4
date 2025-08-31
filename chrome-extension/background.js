@@ -15,12 +15,6 @@ chrome.runtime.onInstalled.addListener((details) => {
     }
 });
 
-//// Handle extension icon click
-//chrome.action.onClicked.addListener((tab) => {
-//    // This will open the popup automatically due to manifest configuration
-//    console.log('SocialCast extension icon clicked');
-//});
-//
 // Handle messages from content scripts and popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('Background script received message:', request);
@@ -45,6 +39,39 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             // Check if backend is running
             checkBackendStatus().then(status => {
                 sendResponse({ backendRunning: status });
+            });
+            return true; // Keep message channel open for async response
+            
+        case 'startListening':
+            // Forward to content script
+            chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+                if (tabs[0]) {
+                    chrome.tabs.sendMessage(tabs[0].id, {action: 'startListening'});
+                }
+            });
+            sendResponse({ success: true });
+            break;
+            
+        case 'stopListening':
+            // Forward to content script
+            chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+                if (tabs[0]) {
+                    chrome.tabs.sendMessage(tabs[0].id, {action: 'stopListening'});
+                }
+            });
+            sendResponse({ success: true });
+            break;
+            
+        case 'getStatus':
+            // Get status from content script
+            chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+                if (tabs[0]) {
+                    chrome.tabs.sendMessage(tabs[0].id, {action: 'getStatus'}, function(response) {
+                        sendResponse(response);
+                    });
+                } else {
+                    sendResponse({ error: 'No active tab' });
+                }
             });
             return true; // Keep message channel open for async response
             
@@ -164,12 +191,12 @@ chrome.runtime.onInstalled.addListener(() => {
     });
 });
 
-//// Handle context menu clicks
-//chrome.contextMenus.onClicked.addListener((info, tab) => {
-//    if (info.menuItemId === 'socialcast-start') {
-//        chrome.tabs.sendMessage(tab.id, { action: 'startListening' });
-//    } else if (info.menuItemId === 'socialcast-stop') {
-//        chrome.tabs.sendMessage(tab.id, { action: 'stopListening' });
-//    }
-//});
+// Handle context menu clicks
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+    if (info.menuItemId === 'socialcast-start') {
+        chrome.tabs.sendMessage(tab.id, { action: 'startListening' });
+    } else if (info.menuItemId === 'socialcast-stop') {
+        chrome.tabs.sendMessage(tab.id, { action: 'stopListening' });
+    }
+});
 

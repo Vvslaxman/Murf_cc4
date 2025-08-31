@@ -173,7 +173,28 @@ class SummarizerService:
                 return self._summarize_cloud(cleaned_text)
         except Exception as e:
             logger.error(f"Summarization failed: {e}")
-            return cleaned_text  # Return original text as fallback
+            # Fallback to simple summarization
+            return self._simple_summarize(cleaned_text)
+    
+    def _simple_summarize(self, text: str) -> str:
+        """Simple summarization without heavy models"""
+        # Take first sentence or first 100 characters
+        sentences = text.split('. ')
+        if sentences:
+            summary = sentences[0]
+            if not summary.endswith('.'):
+                summary += '.'
+            
+            # Limit length
+            if len(summary) > 150:
+                summary = summary[:147] + '...'
+            
+            return summary
+        
+        # Fallback to truncation
+        if len(text) > 150:
+            return text[:147] + '...'
+        return text
     
     def _summarize_local(self, text: str) -> str:
         """Summarize using local transformer model"""

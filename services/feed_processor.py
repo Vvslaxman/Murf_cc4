@@ -150,10 +150,15 @@ class FeedProcessor:
         """
         cutoff_time = datetime.now() - timedelta(hours=hours)
         
+        logger.info(f"Looking for posts after {cutoff_time}")
+        logger.info(f"Total processed posts: {len(self.processed_posts)}")
+        
         digest_posts = [
             post for post in self.processed_posts
             if post.original_post.timestamp >= cutoff_time
         ]
+        
+        logger.info(f"Found {len(digest_posts)} posts for digest")
         
         # Sort by priority
         digest_posts.sort(key=lambda x: x.priority, reverse=True)
@@ -168,7 +173,8 @@ class FeedProcessor:
         
         if not digest_posts:
             logger.info("No posts found for daily digest")
-            return None
+            # Return a message about no posts
+            return "no_posts"
         
         # Create digest text
         digest_text = self._create_digest_text(digest_posts)
