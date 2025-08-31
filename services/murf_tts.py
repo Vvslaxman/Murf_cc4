@@ -2,6 +2,8 @@
 Murf TTS Service - Handles text-to-speech conversion using Murf API WebSocket streaming
 Supports chunking for texts longer than 3000 characters
 """
+from dotenv import load_dotenv
+load_dotenv()
 
 import asyncio
 import json

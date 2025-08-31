@@ -2,7 +2,8 @@
 Summarization Service - Uses LangChain to summarize and filter social media content
 Supports multiple LLM providers and local models
 """
-
+from dotenv import load_dotenv
+load_dotenv()
 import os
 import re
 from typing import List, Dict, Optional

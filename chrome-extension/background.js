@@ -15,12 +15,12 @@ chrome.runtime.onInstalled.addListener((details) => {
     }
 });
 
-// Handle extension icon click
-chrome.action.onClicked.addListener((tab) => {
-    // This will open the popup automatically due to manifest configuration
-    console.log('SocialCast extension icon clicked');
-});
-
+//// Handle extension icon click
+//chrome.action.onClicked.addListener((tab) => {
+//    // This will open the popup automatically due to manifest configuration
+//    console.log('SocialCast extension icon clicked');
+//});
+//
 // Handle messages from content scripts and popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('Background script received message:', request);
@@ -164,12 +164,12 @@ chrome.runtime.onInstalled.addListener(() => {
     });
 });
 
-// Handle context menu clicks
-chrome.contextMenus.onClicked.addListener((info, tab) => {
-    if (info.menuItemId === 'socialcast-start') {
-        chrome.tabs.sendMessage(tab.id, { action: 'startListening' });
-    } else if (info.menuItemId === 'socialcast-stop') {
-        chrome.tabs.sendMessage(tab.id, { action: 'stopListening' });
-    }
-});
+//// Handle context menu clicks
+//chrome.contextMenus.onClicked.addListener((info, tab) => {
+//    if (info.menuItemId === 'socialcast-start') {
+//        chrome.tabs.sendMessage(tab.id, { action: 'startListening' });
+//    } else if (info.menuItemId === 'socialcast-stop') {
+//        chrome.tabs.sendMessage(tab.id, { action: 'stopListening' });
+//    }
+//});
 

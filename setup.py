@@ -93,7 +93,8 @@ def create_directories():
     for directory in directories:
         Path(directory).mkdir(parents=True, exist_ok=True)
         print(f"✅ Created {directory}/")
-
+    return True
+    
 def setup_chrome_extension():
     """Setup Chrome extension"""
     print("🔧 Setting up Chrome extension...")
